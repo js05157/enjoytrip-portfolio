@@ -1,0 +1,14 @@
+<%@ page pageEncoding="UTF-8" %>
+<%@ include file="../fragments/header.jspf" %>
+<p class="eyebrow">READY TO DRIVE</p><h1 class="page-title">전기차 충전소 찾기</h1>
+<p class="muted">여행할 지역의 충전기 위치와 최근 상태를 확인하세요. 제공기관의 갱신 시각을 함께 확인해 주세요.</p>
+<div class="toolbar"><a class="button secondary small" href="<c:url value='/travel-info'/>">날씨·일출·일몰</a><a class="button secondary small" href="<c:url value='/travel-photos'/>">여행 사진</a></div>
+<form class="search" action="<c:url value='/chargers'/>"><div class="field"><label for="chargerRegion">지역</label><select id="chargerRegion" name="region"><c:forEach var="r" items="${regions}"><option value="${r.key}" ${region eq r.key ? 'selected' : ''}><c:out value="${r.value}"/></option></c:forEach></select></div><button class="primary">충전소 조회</button></form>
+<c:if test="${not configured}"><p class="notice">충전소 정보 제공을 준비하고 있습니다.</p></c:if>
+<c:if test="${not empty result}"><p class="muted">충전기별 목록 · 전체 <c:out value="${result.total}"/>건 · 조회 시각 <c:out value="${result.retrievedAt}"/> KST</p>
+<div class="leaflet-map" data-map aria-label="현재 페이지의 충전소 지도"><c:forEach var="charger" items="${result.items}"><c:if test="${charger.hasCoordinates}"><span hidden data-lat="${charger.latitude}" data-lon="${charger.longitude}" data-title="<c:out value='${charger.name}'/>"></span></c:if></c:forEach></div>
+<div class="grid"><c:forEach var="charger" items="${result.items}"><article class="card feature"><span class="tag"><c:out value="${charger.status}"/></span><h2><c:out value="${charger.name}"/></h2><p><c:out value="${charger.address}"/></p><p>충전기 <c:out value="${charger.chargerId}"/> · <c:out value="${charger.type}"/><br>용량: <c:out value="${charger.capacity}"/><br>이용시간: <c:out value="${charger.hours}"/><br>주차: <c:out value="${charger.parking}"/><br>운영: <c:out value="${charger.operator}"/> <c:out value="${charger.phone}"/></p><p class="muted">상태 갱신: <c:out value="${charger.updated}"/> KST</p><p><c:out value="${charger.note}"/></p><c:if test="${charger.hasCoordinates}"><a class="button secondary small" href="https://www.openstreetmap.org/?mlat=${charger.latitude}&amp;mlon=${charger.longitude}#map=16/${charger.latitude}/${charger.longitude}" target="_blank" rel="noopener noreferrer">지도에서 보기</a></c:if></article></c:forEach></div>
+<c:if test="${empty result.items}"><p class="empty">해당 지역의 충전소 정보가 없습니다.</p></c:if>
+<div class="pagination"><c:if test="${page gt 1}"><a href="?region=${region}&amp;page=${page-1}">이전</a></c:if><span>${page} 페이지</span><c:if test="${hasNext}"><a href="?region=${region}&amp;page=${page+1}">다음</a></c:if></div></c:if>
+<p class="muted">제공: <a href="https://www.data.go.kr/data/15076352/openapi.do" target="_blank" rel="noopener noreferrer">한국환경공단 전기자동차 충전소 정보</a> · 결과는 최대 1분간 저장됩니다. ‘충전 대기’는 제공기관의 마지막 상태이며 도착 시 사용을 보장하지 않습니다. 충전요금과 이용 제한은 운영기관에 확인하세요.</p>
+<%@ include file="../fragments/footer.jspf" %>
