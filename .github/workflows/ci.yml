@@ -1,0 +1,61 @@
+name: 빌드 및 기능 검증
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      redis:
+        image: redis:8.2-alpine
+        ports: ['6379:6379']
+        options: --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 10
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: enjoytrip_test
+          MYSQL_USER: enjoytrip_test
+          MYSQL_PASSWORD: ci-test-password
+          MYSQL_ROOT_PASSWORD: ci-root-test-password
+        ports: ['3306:3306']
+        options: --health-cmd "mysqladmin ping --silent" --health-interval 5s --health-timeout 3s --health-retries 30
+    env:
+      REDIS_TEST_URI: redis://localhost:6379/15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: 단위·계약·Redis 통합 테스트 및 WAR 빌드
+        run: ./mvnw -B -ntp clean verify
+      - name: Tomcat에 배포하고 MySQL 기반 HTTP 시나리오 검증
+        env:
+          APP_MODE: demo
+          APP_BASE_URL: http://localhost:8080/enjoytrip
+          APP_ADMIN_EMAILS: smoke@example.com
+          REDIS_URI: redis://localhost:6379/0
+          DB_URL: jdbc:mysql://127.0.0.1:3306/enjoytrip_test?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+          DB_USER: enjoytrip_test
+          DB_PASSWORD: ci-test-password
+        run: |
+          version=11.0.27
+          url="https://repo.maven.apache.org/maven2/org/apache/tomcat/tomcat/$version/tomcat-$version.zip"
+          curl -fsSL "$url" -o "$RUNNER_TEMP/tomcat.zip"
+          expected=$(curl -fsSL "$url.sha512" | awk '{print $1}')
+          echo "$expected  $RUNNER_TEMP/tomcat.zip" | sha512sum -c -
+          unzip -q "$RUNNER_TEMP/tomcat.zip" -d "$RUNNER_TEMP/tomcat"
+          export CATALINA_HOME="$RUNNER_TEMP/tomcat/apache-tomcat-$version"
+          cp target/enjoytrip.war "$CATALINA_HOME/webapps/"
+          chmod +x "$CATALINA_HOME"/bin/*.sh
+          bash "$CATALINA_HOME/bin/startup.sh"
+          for attempt in $(seq 1 45); do
+            if curl -fsS http://localhost:8080/enjoytrip/health; then break; fi
+            sleep 2
+          done
+          python3 scripts/smoke_test.py http://localhost:8080/enjoytrip
+      - name: 실패 시 서버 로그
+        if: failure()
+        run: cat "$RUNNER_TEMP"/tomcat/apache-tomcat-*/logs/catalina.out 2>/dev/null || true
