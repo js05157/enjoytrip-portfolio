@@ -32,7 +32,7 @@ class PlanDaoTest {
               owner, "서울 여행", LocalDate.now(), LocalDate.now().plusDays(1), BigDecimal.TEN, "메모");
       Attraction a =
           new TourClient(new Config())
-              .search(new AttractionQuery("1", "", "12", "", 1, 12, "A"))
+              .search(new AttractionQuery("11", "", "12", "", 1, 12, "A"))
               .items()
               .get(0);
       dao.add(id, owner, 1, a, BigDecimal.ONE, "");

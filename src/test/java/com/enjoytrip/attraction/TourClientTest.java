@@ -10,7 +10,7 @@ class TourClientTest {
   @Test
   void filtersByRegionContentAndKeyword() {
     TourClient client = new TourClient(new Config());
-    var result = client.search(new AttractionQuery("1", "", "12", "서울", 1, 12, "A"));
+    var result = client.search(new AttractionQuery("11", "", "12", "서울", 1, 12, "A"));
     assertEquals(1, result.total());
     assertEquals("12", result.items().get(0).contentTypeId());
     assertTrue(result.items().get(0).title().startsWith("[샘플]"));
@@ -29,6 +29,6 @@ class TourClientTest {
     assertThrows(
         IllegalArgumentException.class, () -> new AttractionQuery("", "1", "12", "", 1, 12, "A"));
     assertThrows(
-        IllegalArgumentException.class, () -> new AttractionQuery("1", "", "99", "", 1, 12, "A"));
+        IllegalArgumentException.class, () -> new AttractionQuery("11", "", "99", "", 1, 12, "A"));
   }
 }

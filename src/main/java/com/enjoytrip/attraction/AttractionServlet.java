@@ -47,7 +47,7 @@ public class AttractionServlet extends HttpServlet {
     AttractionQuery query = AttractionQuery.of(req);
     req.setAttribute("query", query);
     req.setAttribute("result", service.search(query));
-    req.setAttribute("regions", TourClient.REGIONS);
+    req.setAttribute("regions", service.regions());
     req.setAttribute("types", TourClient.TYPES);
     req.setAttribute("districts", service.districts(query.area()));
     req.setAttribute("page", query.page());

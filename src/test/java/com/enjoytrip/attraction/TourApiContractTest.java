@@ -42,17 +42,21 @@ class TourApiContractTest {
                       "http://127.0.0.1:" + server.getAddress().getPort(),
                       "tour.service-key",
                       "a+b/c=")));
-      var result = client.search(new AttractionQuery("1", "", "12", "", 1, 12, "A"));
+      var result = client.search(new AttractionQuery("11", "110", "12", "", 1, 12, "A"));
       assertEquals(1, result.total());
       assertEquals("서울 관광지", result.items().get(0).title());
       assertEquals("/areaBasedList2", path.get());
       assertTrue(query.get().contains("serviceKey=a%2Bb%2Fc%3D"));
-      client.search(new AttractionQuery("1", "", "12", "서울", 1, 12, "A"));
+      assertTrue(query.get().contains("lDongRegnCd=11"));
+      assertTrue(query.get().contains("lDongSignguCd=110"));
+      assertFalse(query.get().contains("areaCode="));
+      assertFalse(query.get().contains("sigunguCode="));
+      client.search(new AttractionQuery("11", "", "12", "서울", 1, 12, "A"));
       assertEquals("/searchKeyword2", path.get());
       assertNotNull(client.detail("42"));
       assertEquals("/detailCommon2", path.get());
-      client.districts("1");
-      assertEquals("/areaCode2", path.get());
+      client.regions();
+      assertEquals("/ldongCode2", path.get());
     } finally {
       server.stop(0);
     }

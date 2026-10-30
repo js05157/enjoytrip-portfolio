@@ -20,4 +20,8 @@ public class AttractionService {
   public List<TourClient.Area> districts(String area) {
     return source.districts(area);
   }
+
+  public java.util.Map<String, String> regions() {
+    return source.regions();
+  }
 }

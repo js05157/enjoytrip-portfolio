@@ -60,10 +60,10 @@ def main():
     assert '여행자&lt;확인&gt;' in body
     a.post('/members/update', {'email': 'smoke@example.com', 'name': '수정한 회원', 'password': 'incorrect', 'newPassword': ''}, 400)
     a.post('/members/update', {'email': 'smoke@example.com', 'name': '수정한 회원', 'password': PASS, 'newPassword': ''})
-    body, _ = a.get('/attractions?area=1&type=12')
+    body, _ = a.get('/attractions?area=11&type=12')
     assert '[샘플]' in body
     attraction = re.search(r'/attractions/detail\?id=(\d+)', body).group(1)
-    a.get('/attractions?area=1&type=12')
+    a.get('/attractions?area=11&type=12')
     detail, _ = a.get('/attractions/detail?id=' + attraction)
     assert '여행 일정' in detail
     today = datetime.date.today()

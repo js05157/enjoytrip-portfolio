@@ -26,7 +26,7 @@ public final class CachedAttractionService extends AttractionService {
   public String key(AttractionQuery query) {
     try {
       String identity = json.writeValueAsString(query);
-      return "enjoytrip:v2:"
+      return "enjoytrip:v3:"
           + namespace
           + ":attractions:"
           + HexFormat.of()

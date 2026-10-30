@@ -22,11 +22,12 @@ public class TourClient {
 
   static {
     String[] codes = {
-      "1", "2", "3", "4", "5", "6", "7", "8", "31", "32", "33", "34", "35", "36", "37", "38", "39"
+      "11", "26", "27", "28", "29", "30", "31", "36", "41", "43", "44", "46", "47", "48", "50",
+      "51", "52"
     };
     String[] names = {
-      "서울", "인천", "대전", "대구", "광주", "부산", "울산", "세종", "경기", "강원", "충북", "충남", "경북", "경남", "전북",
-      "전남", "제주"
+      "서울", "부산", "대구", "인천", "광주", "대전", "울산", "세종", "경기", "충북", "충남", "전남", "경북", "경남", "제주",
+      "강원", "전북"
     };
     for (int i = 0; i < codes.length; i++) REGIONS.put(codes[i], names[i]);
   }
@@ -56,6 +57,10 @@ public class TourClient {
   private final HttpClient http =
       HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(4)).build();
 
+  private record Codes(long expires, Map<String, String> values) {}
+
+  private final Map<String, Codes> areaCache = new java.util.concurrent.ConcurrentHashMap<>();
+
   public TourClient(Config config) {
     this.config = config;
   }
@@ -63,8 +68,8 @@ public class TourClient {
   public Result search(AttractionQuery q) {
     if (config.demo()) return demo(q);
     Map<String, String> params = new LinkedHashMap<>();
-    params.put("areaCode", q.area());
-    params.put("sigunguCode", q.district());
+    params.put("lDongRegnCd", q.area());
+    params.put("lDongSignguCd", q.district());
     params.put("contentTypeId", q.type());
     params.put("arrange", q.sort());
     params.put("pageNo", "" + q.page());
@@ -87,12 +92,24 @@ public class TourClient {
 
   public List<Area> districts(String area) {
     if (area.isEmpty()) return List.of();
-    if (!REGIONS.containsKey(area)) throw new IllegalArgumentException("지역이 잘못되었습니다.");
+    if (!regions().containsKey(area)) throw new IllegalArgumentException("지역이 잘못되었습니다.");
     if (config.demo()) return List.of();
-    List<Area> result = new ArrayList<>();
-    for (JsonNode n : items(call("areaCode2", Map.of("areaCode", area, "numOfRows", "100"))))
-      result.add(new Area(n.path("code").asText(), n.path("name").asText()));
-    return result;
+    return codes(area).entrySet().stream().map(e -> new Area(e.getKey(), e.getValue())).toList();
+  }
+
+  public Map<String, String> regions() {
+    return config.demo() ? Collections.unmodifiableMap(REGIONS) : codes("");
+  }
+
+  private synchronized Map<String, String> codes(String area) {
+    Codes cached = areaCache.get(area);
+    if (cached != null && cached.expires() > System.currentTimeMillis()) return cached.values();
+    Map<String, String> result = new LinkedHashMap<>();
+    for (JsonNode n : items(call("ldongCode2", Map.of("lDongRegnCd", area, "numOfRows", "100"))))
+      result.put(n.path("code").asText(), n.path("name").asText());
+    Map<String, String> values = Collections.unmodifiableMap(result);
+    areaCache.put(area, new Codes(System.currentTimeMillis() + 86_400_000L, values));
+    return values;
   }
 
   private JsonNode call(String operation, Map<String, String> params) {
@@ -113,16 +130,43 @@ public class TourClient {
                   .GET()
                   .build(),
               HttpResponse.BodyHandlers.ofString());
-      if (response.statusCode() != 200) throw new IllegalStateException();
-      JsonNode root = json.readTree(response.body()).path("response");
+      JsonNode payload = json.readTree(response.body());
+      JsonNode root = payload.path("response");
       String code = root.path("header").path("resultCode").asText();
+      if (code.isEmpty())
+        code =
+            payload
+                .path("OpenAPI_ServiceResponse")
+                .path("cmmMsgHeader")
+                .path("returnReasonCode")
+                .asText();
+      if (code.isEmpty()) code = payload.path("resultCode").asText();
+      if (response.statusCode() != 200 || (!code.equals("0000") && !code.equals("000"))) {
+        String safeCode = code.matches("[A-Z0-9_]{1,40}") ? code : "UNKNOWN";
+        throw new ApiFailure(
+            "관광 정보 요청 실패 ("
+                + operation
+                + ", HTTP "
+                + response.statusCode()
+                + ", 코드 "
+                + safeCode
+                + "). 서비스 활용 등록과 제공 상태를 확인해 주세요.");
+      }
       if (!code.equals("0000") && !code.equals("000")) throw new IllegalStateException();
       return root.path("body");
+    } catch (ApiFailure e) {
+      throw e;
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new IllegalStateException("관광 정보 요청이 중단되었습니다.");
     } catch (Exception e) {
       throw new IllegalStateException("관광 정보를 불러오지 못했습니다. 인증키와 API 서비스 상태를 확인해 주세요.");
+    }
+  }
+
+  public static class ApiFailure extends IllegalStateException {
+    public ApiFailure(String message) {
+      super(message);
     }
   }
 
@@ -137,8 +181,7 @@ public class TourClient {
   }
 
   private Attraction parse(JsonNode n) {
-    String image = n.path("firstimage").asText();
-    if (!image.startsWith("https://")) image = "";
+    String image = imageUrl(n.path("firstimage").asText());
     String overview =
         n.path("overview").asText().replaceAll("(?i)<br\s*/?>", "\n").replaceAll("<[^>]*>", "");
     double lat = n.path("mapy").asDouble(), lon = n.path("mapx").asDouble();
@@ -153,12 +196,24 @@ public class TourClient {
         n.path("contentid").asText(),
         n.path("title").asText(),
         n.path("addr1").asText() + " " + n.path("addr2").asText(),
-        n.path("areacode").asText(),
+        n.path("lDongRegnCd").asText(n.path("areacode").asText()),
         n.path("contenttypeid").asText(),
         image,
         lat,
         lon,
         overview);
+  }
+
+  public static String imageUrl(String value) {
+    if (value.startsWith("http://tong.visitkorea.or.kr/")) value = "https://" + value.substring(7);
+    try {
+      URI uri = URI.create(value);
+      return "https".equals(uri.getScheme()) && uri.getHost() != null && uri.getUserInfo() == null
+          ? uri.toASCIIString()
+          : "";
+    } catch (IllegalArgumentException e) {
+      return "";
+    }
   }
 
   private Result demo(AttractionQuery q) {
@@ -180,7 +235,7 @@ public class TourClient {
   private List<Attraction> samples() {
     List<Attraction> values = new ArrayList<>();
     int id = 1000;
-    for (String area : List.of("1", "6", "39"))
+    for (String area : List.of("11", "26", "50"))
       for (String type : TYPES.keySet()) {
         String title = "[샘플] " + REGIONS.get(area) + " " + TYPES.get(type);
         values.add(
@@ -191,8 +246,8 @@ public class TourClient {
                 area,
                 type,
                 "",
-                area.equals("1") ? 37.5796 : area.equals("6") ? 35.1587 : 33.4996,
-                area.equals("1") ? 126.977 : area.equals("6") ? 129.1604 : 126.5312,
+                area.equals("11") ? 37.5796 : area.equals("26") ? 35.1587 : 33.4996,
+                area.equals("11") ? 126.977 : area.equals("26") ? 129.1604 : 126.5312,
                 "화면과 검색 기능 확인을 위한 개발용 샘플입니다. 실제 관광지의 운영 정보가 아닙니다."));
       }
     return values;

@@ -55,6 +55,12 @@ public class WebFilter implements Filter {
         }
       }
       chain.doFilter(req, res);
+    } catch (com.enjoytrip.attraction.TourClient.ApiFailure e) {
+      if (res.isCommitted()) throw e;
+      res.resetBuffer();
+      res.setStatus(502);
+      req.setAttribute("error", e.getMessage());
+      Web.view(req, res, "error");
     } catch (IllegalArgumentException e) {
       if (res.isCommitted()) throw e;
       res.resetBuffer();
