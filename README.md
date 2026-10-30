@@ -1,11 +1,11 @@
 # EnjoyTrip
 
-지역별 관광지를 찾고, 여행 일정을 만들고, 다녀온 장소와 여행 이야기를 나누는 **JSP·Servlet MVC 기반 2인 팀 프로젝트**입니다.
+지역별 관광지를 찾고, 여행 일정을 만들고, 사진과 여행 이야기를 기록하는 **JSP·Servlet MVC 기반 개인 여행 서비스**입니다. SSAFY EnjoyTrip 요구사항을 바탕으로 회원·일정·커뮤니티와 Redis 캐시, 날씨·사진·충전소 연동을 구현했습니다.
 
-- Organization: [enjoytrip-duo](https://github.com/enjoytrip-duo)
-- 저장소: [enjoytrip](https://github.com/enjoytrip-duo/enjoytrip)
-- 개발팀: `developers` (저장소 Write 권한)
-- 개발 이력: 기능별 한글 커밋
+- 저장소: [js05157/enjoytrip-portfolio](https://github.com/js05157/enjoytrip-portfolio)
+- 기술: Java 17 · JSP · Jakarta Servlet · MySQL · Redis
+- 개발 이력: 기능별 한글 커밋과 자동화된 빌드·기능 검증
+- 기반 코드 이력: [enjoytrip-duo/enjoytrip](https://github.com/enjoytrip-duo/enjoytrip)의 커밋 이력을 보존하고 개인 저장소에서 관리합니다.
 
 ## 구현 기능
 
@@ -23,7 +23,17 @@
 | F112 | 지역별 여행 사진 갤러리, 관광지 추가 사진·원본·공공누리 유형 표시 |
 | F114 | 한국환경공단 충전기별 위치·유형·용량·운영상태·상태 갱신 시각·지도·페이지 처리 |
 
-필수·추가·심화 기능과 선택 아이디어 F111~F114까지 구현했습니다. 충전소 API와 실제 재설정 메일은 각각 개인 인증키/SMTP 설정이 필요하며, 설정 전에는 제공 준비 안내를 표시합니다.
+필수·추가·심화 기능과 선택 아이디어 F111~F114의 코드를 구현했습니다. 실제 충전소 API 정상 조회와 실제 비밀번호 재설정 메일 링크를 통한 전체 흐름 확인은 남아 있습니다.
+
+## 검증 상태
+
+- 단위·계약·Redis 통합 테스트 25개 통과, MySQL 기반 HTTP 시나리오와 GitHub Actions 검증
+- 실제 TourAPI 목록·상세·법정동 검색·사진, Open-Meteo 날씨·일출·일몰, MySQL·Redis 연결 확인
+- Gmail STARTTLS 인증·본인 주소 테스트 메일 발송 및 사용자 수신 확인
+- 충전소 API는 현재 HTTP 403 / 오류코드 30을 반환해 서비스 등록 상태 확인 후 재검증 필요
+- 비밀번호 재설정은 로컬 SMTP 및 HTTP 테스트를 통과했으며 실제 메일 링크 → 변경 → 로그인까지의 최종 확인은 별도
+
+실행 화면과 자세한 근거는 [검증 결과](docs/verification.md)에 정리했습니다.
 
 ## 개발 환경
 
@@ -41,8 +51,8 @@
 개발 모드는 **샘플 관광지와 파일 H2 DB**를 사용합니다. 실제 관광지로 오인하지 않도록 모든 화면에 개발 모드를 표시합니다. 가입한 회원·일정·게시글은 파일 DB에 저장되며 기본 계정/비밀번호는 없습니다. 개발 모드의 비밀번호 재설정 링크는 화면에만 표시하고 메일을 발송하지 않습니다.
 
 ```powershell
-git clone https://github.com/enjoytrip-duo/enjoytrip.git
-cd enjoytrip
+git clone https://github.com/js05157/enjoytrip-portfolio.git
+cd enjoytrip-portfolio
 docker compose up -d
 .\scripts\run-local.ps1
 ```
@@ -103,7 +113,7 @@ AttractionServlet → CachedAttractionService → Redis GET
 
 날씨 응답은 30분, 충전소 응답은 1분간 Redis에 저장하며 외부 API가 실패한 응답은 저장하지 않습니다. 인증키를 포함한 요청 URL은 캐시 키에 노출하지 않고 SHA-256으로 구분합니다.
 
-관광지 목록 키는 모드(`demo/live`)와 지역·시군구·콘텐츠 유형·검색어·페이지·크기·정렬 전체를 포함한 SHA-256으로 구분합니다. 영구 데이터는 MySQL에 저장하며 Redis에는 관광지 조회 결과만 저장합니다.
+관광지 목록 키는 모드(`demo/live`)와 지역·시군구·콘텐츠 유형·검색어·페이지·크기·정렬 전체를 포함한 SHA-256으로 구분합니다. 영구 데이터는 MySQL에 저장하며 Redis에는 관광지 목록·날씨·충전소 조회 응답을 저장합니다.
 
 `/health`의 `redis`, `cache.hits`, `cache.misses`를 확인하세요. 같은 조건으로 두 번 조회했을 때 Redis가 연결되어 있으면 hits가 증가합니다. Redis 장애 시에는 `UNAVAILABLE`로 표시되며 원본 조회를 계속합니다.
 
@@ -126,11 +136,11 @@ python scripts/travel_smoke_test.py http://localhost:8080/enjoytrip
 - HTTP 검증은 **demo 서버 전용**이며 `smoke@example.com`, `other-smoke@example.com`을 생성 후 삭제합니다. 관리자 기능까지 검증하려면 테스트 서버에서 `APP_ADMIN_EMAILS=smoke@example.com`을 설정하세요.
 - GitHub Actions가 JDK 17·MySQL 8.4·Redis 8.2·Tomcat 11 조합으로 빌드와 HTTP 검증을 실행합니다. 날씨·충전소의 HTTP 시나리오는 로컬 `fixture_api.py` 응답 서버를 사용해 외부 키와 네트워크에 의존하지 않습니다.
 
-## 협업
+## 개발 이력 관리
 
-각자 조직 레포를 clone하고 기능 브랜치에서 작업한 뒤 PR로 `main`에 병합합니다. 포크는 필요하지 않습니다. 예: `feature/attraction-search`, `feature/member-profile`.
+개인 저장소의 `main`을 기준으로 기능 브랜치에서 개발하고 검증한 뒤 병합합니다. 커밋 메시지는 `기능: 관광지 검색 추가`, `수정: 로그인 세션 오류 해결`처럼 한글로 작성합니다.
 
-커밋 메시지는 `기능: 관광지 검색 추가`, `수정: 로그인 세션 오류 해결`처럼 한글로 작성합니다. 공통 `pom.xml`, DB 스키마를 바꿀 때는 PR에 변경 이유를 남깁니다.
+기존 구현 커밋과 작성자 정보를 유지합니다. 기반 조직 저장소는 `upstream`, 개인 저장소는 `origin`으로 구분합니다. 개인 설정 파일과 인증키는 Git에서 제외합니다.
 
 ## 제출 문서
 
