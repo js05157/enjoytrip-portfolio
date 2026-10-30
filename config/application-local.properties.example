@@ -16,3 +16,6 @@ redis.ttl-seconds=600
 # smtp.user=
 # smtp.password=
 # smtp.from=
+
+# 공지사항 작성과 뉴스 수집 관리자 (쉼표로 구분)
+app.admin-emails=
