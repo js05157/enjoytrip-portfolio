@@ -1,0 +1,57 @@
+# Maven 빌드 결과
+target/
+*.class
+*.war
+*.ear
+
+# Eclipse / STS 개인 설정
+.project
+.classpath
+.settings/
+.factorypath
+.metadata/
+.recommenders/
+
+# IntelliJ IDEA / VS Code 개인 설정
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+out/
+
+# 로그 및 임시 파일
+*.log
+logs/
+*.tmp
+*.swp
+*.swo
+*~
+
+# 개인 DB 설정 및 API 키
+# 공통 application.properties와 예제 설정 파일은 Git에 포함한다.
+.env
+.env.*
+!.env.example
+!.env.*.example
+application-local.properties
+application-local.yml
+application-local.yaml
+db-local.properties
+*.pem
+*.key
+*.jks
+*.p12
+*.pfx
+
+# 로컬 서버 / 실행 환경
+.local/
+/Servers/
+
+# 운영체제 파일
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# pom.xml, src/, .mvn/, mvnw, mvnw.cmd는 Git에 포함한다.
+# WEB-INF/lib의 라이브러리를 공유할 수 있도록 *.jar는 제외하지 않는다.

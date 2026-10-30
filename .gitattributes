@@ -1,0 +1,11 @@
+* text=auto
+
+# 운영체제가 달라도 같은 줄바꿈으로 공유한다.
+*.java text eol=lf
+*.jsp text eol=lf
+*.xml text eol=lf
+*.md text eol=lf
+*.properties text eol=lf
+*.sh text eol=lf
+mvnw text eol=lf
+*.cmd text eol=crlf
