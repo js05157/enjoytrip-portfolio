@@ -20,6 +20,8 @@ public class AuthServlet extends HttpServlet {
       throws IOException, ServletException {
     String path = req.getPathInfo();
     if ("/forgot".equals(path) || "/reset".equals(path)) {
+      if ("/forgot".equals(path))
+        req.setAttribute("resetAvailable", App.of(getServletContext()).resets.available());
       Web.view(req, res, "auth" + path);
       return;
     }
@@ -38,6 +40,12 @@ public class AuthServlet extends HttpServlet {
       try {
         ResetService reset = App.of(getServletContext()).resets;
         if ("/forgot".equals(path)) {
+          req.setAttribute("resetAvailable", reset.available());
+          if (!reset.available()) {
+            res.setStatus(503);
+            Web.view(req, res, "auth/forgot");
+            return;
+          }
           Long last = (Long) req.getSession().getAttribute("lastReset");
           long now = System.currentTimeMillis();
           if (last != null && now - last < 30_000) {

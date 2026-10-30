@@ -12,6 +12,15 @@ import org.junit.jupiter.api.Test;
 
 class MailDeliveryTest {
   @Test
+  void missingMailConfigurationIsDetectedBeforeLookingUpAnAccount() {
+    var service =
+        new ResetService(
+            null, new Config(Map.of("app.mode", "live", "smtp.host", "", "smtp.from", "")));
+    assertFalse(service.available());
+    assertThrows(IllegalStateException.class, () -> service.request("anyone@example.com"));
+  }
+
+  @Test
   void liveModeSendsResetMailWithoutExposingLinkToBrowser() throws Exception {
     try (ServerSocket smtp = new ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"))) {
       CompletableFuture<String> received = new CompletableFuture<>();

@@ -23,6 +23,7 @@ public class ResetService {
   }
 
   public String request(String email) {
+    if (!available()) throw new IllegalStateException("재설정 메일 서비스를 준비하고 있습니다.");
     Member member = members.byEmail(MemberService.email(email));
     if (member == null) return null;
     if (!config.demo()) config.require("smtp.host");
@@ -37,6 +38,13 @@ public class ResetService {
     if (config.demo()) return link;
     send(member.email(), link);
     return null;
+  }
+
+  public boolean available() {
+    return config.demo()
+        || (!config.get("smtp.host").isBlank()
+            && !config.get("smtp.from").isBlank()
+            && (config.get("smtp.user").isBlank() || !config.get("smtp.password").isBlank()));
   }
 
   String issue(long memberId) {
