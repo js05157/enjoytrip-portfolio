@@ -55,3 +55,6 @@ Desktop.ini
 
 # pom.xml, src/, .mvn/, mvnw, mvnw.cmd는 Git에 포함한다.
 # WEB-INF/lib의 라이브러리를 공유할 수 있도록 *.jar는 제외하지 않는다.
+
+# 개발용 파일 DB / 업로드
+/enjoytrip-data/

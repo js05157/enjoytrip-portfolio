@@ -1,3 +1,4 @@
+<%@ page pageEncoding="UTF-8" %>
 <%@ include file="../fragments/header.jspf" %>
 <p class="eyebrow">FIND YOUR PLACE</p><h1 class="page-title">지금, 떠나고 싶은 곳</h1>
 <form class="search" method="get" action="<c:url value='/attractions'/>">
