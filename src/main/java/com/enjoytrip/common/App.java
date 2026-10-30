@@ -5,9 +5,11 @@ import jakarta.servlet.annotation.WebListener;
 public class App implements ServletContextListener {
     public Config config;
     public Database db;
+    public com.enjoytrip.attraction.AttractionService attractions;
     public static App of(ServletContext context) { return (App) context.getAttribute("app"); }
     @Override public void contextInitialized(ServletContextEvent event) {
         config = new Config(); db = new Database(config);
+        attractions = new com.enjoytrip.attraction.AttractionService(new com.enjoytrip.attraction.TourClient(config));
         event.getServletContext().setAttribute("app", this);
         event.getServletContext().setAttribute("demo", config.demo());
     }
