@@ -2,41 +2,65 @@
 
 검증일: **2026-10-30 (Asia/Seoul)**
 
-## 실행한 검증
+## 실행 결과
 
 | 대상 | 결과 |
 | --- | --- |
-| Maven `verify` / WAR 빌드 | 성공 |
-| JUnit 16개 | 실패 0, 오류 0, 스킵 0 (실제 Redis 포함) |
-| MySQL 8.0.46 + Tomcat 11.0.27 HTTP 시나리오 | 성공 |
-| Redis 8.2.11 저장·조회·TTL 만료 | 성공 |
-| 같은 관광지 조건 재조회 | 캐시 hits 증가 확인 |
-| TourAPI 버전 2 엔드포인트·단일/빈 응답·키 인코딩 | 로컬 HTTP 계약 테스트 성공 |
-| 회원 가입·조회·수정·탈퇴 / 잘못된 비밀번호 | 성공 |
-| CSRF 누락·다른 회원 일정 접근 / 게시글 수정 권한 | 차단 확인 |
-| 사진 업로드·JPEG 재인코딩·탈퇴 시 파일 정리 | 성공 |
-| 재설정 토큰 재사용·이전 토큰 / 세션 버전 변경 | 차단 및 변경 확인 |
+| Maven `clean verify` / WAR 빌드 | 성공 |
+| JUnit 24개 | 실패 0, 오류 0, 스킵 0 (실제 Redis 포함) |
+| MySQL 8.0.46 연결·테이블 초기화 | 연결 정상, 앱 테이블 7/7 생성 확인 |
+| 실제 TourAPI 목록·키워드·상세·법정동·추가 사진 | 업데이트된 개인 키로 HTTP 200, 정상 코드 확인 |
+| 지역·시군구 필터 | 서울 관광지 767건 → 종로구 147건, 브라우저 선택·검색 확인 |
+| 실제 Open-Meteo | 7일 날씨·기온·강수확률·일출·일몰 응답과 JSP 표시 확인 |
+| 실제 Redis 8.2.11 | 저장·조회·TTL 만료, 관광지 반복 조회 시 캐시 hits 증가 확인 |
+| live 서버 `/health` | `database=UP`, `redis=UP`, `demo=false` |
+| 회원·일정·게시판·사진·재설정 HTTP 시나리오 | 격리된 demo 서버에서 성공, 임시 회원/업로드 정리 |
+| 여행 도구 HTTP 시나리오 | live 서버와 격리된 fixture 서버 모두 성공 |
+| 충전소 응답·지도·상태·JSP | 로컬 HTTP 응답 서버로 성공, JSP record 속성 접근 오류 수정 후 재검증 |
 | SMTP 전송 | 로컬 SMTP 수신 서버로 MIME 메일 전달 확인 |
-| 실제 관광 뉴스 RSS 수집·DB 저장 | HTTP 200 및 새 기사 저장 확인 |
-| Windows 로컬 실행 스크립트 | Tomcat 다운로드·체크섬·배포·기동 확인 (18082 포트) |
-| JSP 한글·목록·OpenStreetMap 지도 타일 | 브라우저 시각 검증 완료 |
-| JavaScript / PowerShell 구문 / Git whitespace | 통과 |
+| 실제 관광 뉴스 RSS 수집·DB 저장 | 이전 통합 검증에서 HTTP 200 및 새 기사 저장 확인 |
+| 한글·사진 갤러리·날씨 화면 | 실제 데이터로 브라우저 시각 검증, 모바일 폭 390px에서 페이지 가로 넘침 없음 |
 
-HTTP 시나리오는 `scripts/smoke_test.py`로 재현할 수 있습니다. 테스트 회원 두 명을 생성하고 검증 후 삭제합니다. 기존 로컬 MySQL 서비스는 변경하지 않고, 별도 데이터 디렉터리·33307 포트의 테스트 인스턴스에서 검증했습니다.
+API 키와 DB 비밀번호는 테스트 출력·커밋에 포함하지 않았습니다. 실제 키를 사용한 외부 조회와 합성 응답을 사용한 계약 검증을 구분했습니다.
 
-## 별도 환경 설정이 필요한 항목
+## 재현 방법
 
-- 개인 TourAPI 키가 아직 개인 설정 파일에 입력되지 않아 실제 키를 사용한 TourAPI 호출은 검증하지 않았습니다. 요청·응답 형태는 로컬 계약 테스트로 확인했습니다.
-- 실제 메일 계정의 인증/STARTTLS 연결과 수신함 도착은 개인 SMTP 설정 후 확인해야 합니다. 로컬 SMTP 프로토콜 전송 경로는 검증했습니다.
-- 이 PC의 Docker Desktop이 기존 시작 오류를 반환하여 Compose 기동은 확인하지 못했습니다. 실제 Redis는 공식 Redis 이미지의 실행 파일로 별도 실행해 검증했습니다. 일반적인 실행은 README의 Docker Compose 방식을 사용합니다.
-- GitHub Actions는 JDK 17·MySQL 8.4·Redis 8.2 환경에서 동일한 빌드/HTTP 검증을 수행하도록 구성했습니다. 실행 결과는 저장소 Actions 탭에서 확인합니다.
+```powershell
+.\mvnw.cmd clean verify
+# 실제 Redis의 저장·TTL 만료 테스트도 포함
+$env:REDIS_TEST_URI='redis://localhost:16379/15'
+.\mvnw.cmd clean verify
+# demo 전용: 임시 회원·일정·게시글·사진 생성 후 정리
+python scripts/smoke_test.py http://localhost:8080/enjoytrip
+# live/demo 공통: 읽기 전용 여행 도구 검증
+python scripts/travel_smoke_test.py http://localhost:8080/enjoytrip
+```
+
+GitHub Actions는 JDK 17·MySQL 8.4·Redis 8.2·Tomcat 11에서 동일한 빌드와 HTTP 검증을 수행합니다. 날씨·충전소 HTTP 시나리오는 `scripts/fixture_api.py`의 localhost 응답 서버를 사용하며 실제 인증키가 필요하지 않습니다. `--fixtures` 옵션은 해당 응답 서버를 연결한 테스트 환경에서만 사용합니다.
+
+## 개인 설정 후 확인할 항목
+
+- `ev.service-key`가 비어 있어 **한국환경공단 실제 충전소 API 호출은 아직 확인하지 못했습니다.** 연동 코드·오류 처리·캐시·지도·상태 표시는 계약/HTTP 테스트로 검증했습니다. 해당 서비스 활용 신청 후 키를 설정하고 톰캣을 재시작해야 합니다.
+- `smtp.host/user/password/from`이 비어 있어 **실제 메일 계정 인증과 수신함 도착은 아직 확인하지 못했습니다.** live 모드에서 재설정 링크를 화면에 노출하지 않습니다.
+- 공지 작성·뉴스 수집을 사용할 본인의 가입 이메일을 `app.admin-emails`에 지정해야 합니다. 기본 관리자 계정/비밀번호는 만들지 않았습니다.
+- 이 PC의 Docker Desktop 시작 오류로 Compose 기동은 확인하지 못했습니다. 현재 실제 Redis는 공식 이미지의 실행 파일로 별도 실행 중이며 `health`에서 정상 연결을 확인했습니다. 팀원의 일반적인 실행 방법은 README의 Docker Compose 방식입니다.
 
 ## 실행 화면
 
+실제 관광지 지역 검색:
+
+![서울 종로구 관광지](screenshots/attractions-live.png)
+
+실제 날씨·일출·일몰:
+
+![기간별 날씨](screenshots/weather.png)
+
+실제 관광 사진:
+
+![여행 사진 갤러리](screenshots/travel-photos.png)
+
+기존 개발 모드의 홈·핫플레이스 화면:
+
 ![홈 화면](screenshots/home.png)
 
-![관광지 검색](screenshots/attractions.png)
-
 ![핫플레이스 지도](screenshots/hotplace-map.png)
-
-화면의 관광지는 개발용 샘플로 표시되어 있습니다. 실제 관광 정보 화면은 live 모드와 TourAPI 설정 후 사용합니다.

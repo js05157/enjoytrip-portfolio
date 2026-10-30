@@ -19,8 +19,11 @@
 | F105 추가 | 여행 사진 업로드, 방문일·장소 유형·위치·설명 저장 및 핫플레이스 지도 |
 | F106 심화 | 관광 뉴스 RSS 수집, 중복 제거, MySQL 저장·조회·원문 링크 |
 | F109~F110 심화 | 공지사항·공유게시판 등록·조회·수정·삭제 및 작성 권한 검사 |
+| F111·F113 | 여행지 좌표·기간별 날씨(최저·최고기온·강수확률), 일출·일몰 한국 시간 표시 |
+| F112 | 지역별 여행 사진 갤러리, 관광지 추가 사진·원본·공공누리 유형 표시 |
+| F114 | 한국환경공단 충전기별 위치·유형·용량·운영상태·상태 갱신 시각·지도·페이지 처리 |
 
-F111~F114의 별도 날씨·추천 사진·일출일몰·충전소 연동은 이번 구현 범위에 포함하지 않았습니다. 관광지의 기본 사진은 TourAPI 정보로 제공합니다.
+필수·추가·심화 기능과 선택 아이디어 F111~F114까지 구현했습니다. 충전소 API와 실제 재설정 메일은 각각 개인 인증키/SMTP 설정이 필요하며, 설정 전에는 제공 준비 안내를 표시합니다.
 
 ## 개발 환경
 
@@ -63,6 +66,7 @@ db.url=jdbc:mysql://localhost:33306/enjoytrip?serverTimezone=Asia/Seoul&characte
 db.user=enjoytrip
 db.password=개인_비밀번호
 tour.service-key=개인_Decoding_인증키
+ev.service-key=충전소_API_Decoding_인증키
 redis.enabled=true
 redis.uri=redis://localhost:16379/0
 redis.ttl-seconds=600
@@ -75,6 +79,10 @@ smtp.from=발신_이메일
 smtp.starttls=true
 ```
 
+- 관광지 지역은 `ldongCode2`의 최신 법정동 시도·시군구 목록을 사용합니다. `lDongRegnCd`, `lDongSignguCd`로 조회하며 폐기 예정 `areaCode2`에 의존하지 않습니다. 코드 목록은 24시간 저장합니다.
+- 날씨·일출·일몰은 별도 키 없는 Open-Meteo를 사용합니다. 오늘부터 15일 뒤까지 조회하며 한국 시간으로 표시합니다. 제공 데이터는 CC BY 4.0이며 화면에 출처를 표시합니다.
+- 충전소는 [한국환경공단 전기자동차 충전소 정보](https://www.data.go.kr/data/15076352/openapi.do)를 별도로 활용 신청하고 `ev.service-key`에 Decoding 키를 입력하세요. TourAPI 등록과 별개입니다. 제공기관의 마지막 상태와 갱신 시각을 표시하며 도착 시 사용을 보장하지 않습니다. 키가 없을 때 가짜 충전소를 표시하지 않습니다.
+- 개인 설정 변경 후 톰캣을 재시작해야 적용됩니다. 인증키·비밀번호는 Git에 커밋하지 않습니다.
 - MySQL에 `enjoytrip` DB와 해당 DB만 접근하는 사용자를 먼저 생성하세요. 앱은 `src/main/resources/db/schema.sql`의 테이블을 `CREATE TABLE IF NOT EXISTS`로 준비하며 기존 테이블을 삭제하지 않습니다.
 - MySQL도 Docker로 실행하려면 `.env.example`을 `.env`로 복사해 개인 비밀번호를 정하고 `docker compose -f compose.mysql.yaml up -d`를 실행합니다. 호스트 포트는 `33306`입니다. 기존 로컬 MySQL과 충돌하지 않습니다.
 - SMTP 설정이 있어야 **실제 메일로** 비밀번호 재설정을 제공할 수 있습니다. live 모드에서는 재설정 링크를 화면/애플리케이션 로그로 노출하지 않습니다. 별도 Tomcat의 access log에도 쿼리 문자열을 남기지 않도록 `%r` 대신 `%m %U %H`를 사용하세요. 로컬 실행 스크립트에는 이 설정을 적용했습니다.
@@ -93,7 +101,9 @@ AttractionServlet → CachedAttractionService → Redis GET
   연결 실패: 300ms 연결 제한, 5초간 캐시 우회 → 원본 조회
 ```
 
-키는 모드(`demo/live`)와 지역·시군구·콘텐츠 유형·검색어·페이지·크기·정렬 전체를 포함한 SHA-256으로 구분합니다. 영구 데이터는 MySQL에 저장하며 Redis에는 관광지 조회 결과만 저장합니다.
+날씨 응답은 30분, 충전소 응답은 1분간 Redis에 저장하며 외부 API가 실패한 응답은 저장하지 않습니다. 인증키를 포함한 요청 URL은 캐시 키에 노출하지 않고 SHA-256으로 구분합니다.
+
+관광지 목록 키는 모드(`demo/live`)와 지역·시군구·콘텐츠 유형·검색어·페이지·크기·정렬 전체를 포함한 SHA-256으로 구분합니다. 영구 데이터는 MySQL에 저장하며 Redis에는 관광지 조회 결과만 저장합니다.
 
 `/health`의 `redis`, `cache.hits`, `cache.misses`를 확인하세요. 같은 조건으로 두 번 조회했을 때 Redis가 연결되어 있으면 hits가 증가합니다. Redis 장애 시에는 `UNAVAILABLE`로 표시되며 원본 조회를 계속합니다.
 
@@ -106,13 +116,15 @@ $env:REDIS_TEST_URI='redis://localhost:16379/15'
 .\mvnw.cmd clean verify
 # 실행 중인 demo 서버에 임시 회원을 생성·삭제하는 HTTP 검증
 python scripts/smoke_test.py http://localhost:8080/enjoytrip
+# live/demo 공통 읽기 전용 여행 도구 검증
+python scripts/travel_smoke_test.py http://localhost:8080/enjoytrip
 ```
 
 - JUnit: 관광 API 응답 계약, 검색 조건, 캐시 적중/손상/키 분리, 비밀번호 해시, 회원 DAO, 재설정 토큰 1회성, SMTP 전송, 일정 소유권·정렬, RSS XXE 차단, 이미지 재인코딩·경로 검증
 - 실제 Redis 통합 테스트는 `REDIS_TEST_URI`가 있을 때 실행합니다. 다른 키를 삭제하거나 `FLUSHDB`를 실행하지 않습니다.
 - HTTP 검증: 한글 JSP, 회원 CRUD·CSRF·로그인, 다른 회원의 일정·게시글 접근 차단, 공지 작성 권한, 사진 업로드/탈퇴 후 정리, 비밀번호 재설정·토큰 재사용 차단
 - HTTP 검증은 **demo 서버 전용**이며 `smoke@example.com`, `other-smoke@example.com`을 생성 후 삭제합니다. 관리자 기능까지 검증하려면 테스트 서버에서 `APP_ADMIN_EMAILS=smoke@example.com`을 설정하세요.
-- GitHub Actions가 JDK 17·MySQL 8.4·Redis 8.2·Tomcat 11 조합으로 빌드와 HTTP 검증을 실행합니다.
+- GitHub Actions가 JDK 17·MySQL 8.4·Redis 8.2·Tomcat 11 조합으로 빌드와 HTTP 검증을 실행합니다. 날씨·충전소의 HTTP 시나리오는 로컬 `fixture_api.py` 응답 서버를 사용해 외부 키와 네트워크에 의존하지 않습니다.
 
 ## 협업
 

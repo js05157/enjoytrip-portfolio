@@ -8,6 +8,15 @@ classDiagram
     HttpServlet <|-- PlanServlet
     HttpServlet <|-- CommunityServlet
     HttpServlet <|-- PlaceServlet
+    HttpServlet <|-- TravelInfoServlet
+    HttpServlet <|-- TravelPhotoServlet
+    HttpServlet <|-- ChargerServlet
+    TravelInfoServlet --> WeatherClient
+    TravelPhotoServlet --> AttractionService
+    ChargerServlet --> ChargerClient
+    WeatherClient --> JsonApi
+    ChargerClient --> JsonApi
+    JsonApi --> Cache
     HttpServlet <|-- NewsServlet
     AttractionServlet --> AttractionService
     AttractionService <|-- CachedAttractionService
