@@ -495,3 +495,8 @@ iframe.map {
 .leaflet-popup-content {
   color: var(--ink);
 }
+
+.photo-gallery figure { margin: 0; }
+.photo-gallery img { object-fit: contain; background: #e8eee6; }
+.toolbar { flex-wrap: wrap; }
+.nav nav { flex-wrap: wrap; justify-content: flex-end; }

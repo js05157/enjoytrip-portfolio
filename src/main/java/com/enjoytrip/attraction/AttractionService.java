@@ -24,4 +24,12 @@ public class AttractionService {
   public java.util.Map<String, String> regions() {
     return source.regions();
   }
+
+  public List<TourClient.Photo> photos(String id) {
+    return source.photos(id);
+  }
+
+  public TourClient.Result recommendedPhotos(String area, int page) {
+    return source.recommendedPhotos(area, page);
+  }
 }

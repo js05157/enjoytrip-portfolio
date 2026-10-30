@@ -90,6 +90,67 @@ public class TourClient {
     return nodes.isEmpty() ? null : parse(nodes.get(0));
   }
 
+  public record Photo(String url, String name, String copyright) {
+    public String getUrl() {
+      return url;
+    }
+
+    public String getName() {
+      return name;
+    }
+
+    public String getCopyright() {
+      return copyright;
+    }
+  }
+
+  public List<Photo> photos(String id) {
+    if (!id.matches("[0-9]{1,12}")) throw new IllegalArgumentException("여행지 번호가 잘못되었습니다.");
+    if (config.demo()) return List.of();
+    List<Photo> result = new ArrayList<>();
+    for (JsonNode n :
+        items(call("detailImage2", Map.of("contentId", id, "numOfRows", "12", "pageNo", "1")))) {
+      String url = imageUrl(n.path("originimgurl").asText());
+      if (!url.isEmpty())
+        result.add(
+            new Photo(
+                url,
+                n.path("imgname").asText("여행지 사진"),
+                copyright(n.path("cpyrhtDivCd").asText())));
+    }
+    return List.copyOf(result);
+  }
+
+  public Result recommendedPhotos(String area, int page) {
+    if (!area.isEmpty() && !regions().containsKey(area))
+      throw new IllegalArgumentException("지역이 잘못되었습니다.");
+    if (page < 1 || page > 1000) throw new IllegalArgumentException("페이지가 잘못되었습니다.");
+    if (config.demo()) return new Result(List.of(), 0);
+    JsonNode body =
+        call(
+            "areaBasedList2",
+            Map.of(
+                "lDongRegnCd",
+                area,
+                "arrange",
+                "O",
+                "numOfRows",
+                "12",
+                "pageNo",
+                Integer.toString(page)));
+    return new Result(
+        items(body).stream().map(this::parse).filter(a -> !a.image().isEmpty()).toList(),
+        body.path("totalCount").asInt());
+  }
+
+  private static String copyright(String code) {
+    return switch (code) {
+      case "Type1" -> "공공누리 제1유형 · 출처 표시";
+      case "Type3" -> "공공누리 제3유형 · 출처 표시 · 변경 금지";
+      default -> "제공기관의 이용 조건 확인 필요";
+    };
+  }
+
   public List<Area> districts(String area) {
     if (area.isEmpty()) return List.of();
     if (!regions().containsKey(area)) throw new IllegalArgumentException("지역이 잘못되었습니다.");

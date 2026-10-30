@@ -2,6 +2,7 @@
 <%@ include file="../fragments/header.jspf" %>
 <p class="eyebrow">BEFORE YOU GO</p><h1 class="page-title">여행 날씨와 해 뜨는 시간</h1>
 <p class="muted">오늘부터 15일 뒤까지 여행지의 예보를 확인하세요. 모든 날짜와 시간은 한국 시간입니다.</p>
+<div class="toolbar"><a class="button secondary small" href="<c:url value='/travel-photos'/>">여행 사진</a><a class="button secondary small" href="<c:url value='/chargers'/>">전기차 충전소</a></div>
 <form class="search" method="get" action="<c:url value='/travel-info'/>">
   <div class="field"><label for="weatherName">장소 이름</label><input id="weatherName" name="name" maxlength="100" value="<c:out value='${name}'/>"></div>
   <div class="field"><label for="weatherLat">위도</label><input id="weatherLat" name="latitude" type="number" step="any" min="32" max="40" value="${latitude}" required></div>
