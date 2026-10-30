@@ -1,0 +1,18 @@
+# config/application-local.properties로 복사 (Git 제외)
+# JVM 옵션 -Denjoytrip.config=C:/절대경로/enjoytrip/config/application-local.properties
+# 또는 환경 변수 APP_CONFIG에 절대 경로 지정
+app.mode=demo
+app.base-url=http://localhost:8080/enjoytrip
+# 실제 서비스는 app.mode=live 및 MySQL/TourAPI/SMTP 설정 필요
+# db.url=jdbc:mysql://localhost:3306/enjoytrip?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+# db.user=enjoytrip
+# db.password=개인_비밀번호
+# tour.service-key=공공데이터포털_Decoding_인증키
+redis.enabled=true
+redis.uri=redis://localhost:6379/0
+redis.ttl-seconds=600
+# smtp.host=smtp.example.com
+# smtp.port=587
+# smtp.user=
+# smtp.password=
+# smtp.from=
