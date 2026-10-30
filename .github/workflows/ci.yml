@@ -43,6 +43,9 @@ jobs:
           DB_URL: jdbc:mysql://127.0.0.1:3306/enjoytrip_test?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
           DB_USER: enjoytrip_test
           DB_PASSWORD: ci-test-password
+          WEATHER_BASE_URL: http://127.0.0.1:18190/forecast
+          EV_BASE_URL: http://127.0.0.1:18190
+          EV_SERVICE_KEY: ci-fixture-not-a-real-key
         run: |
           version=11.0.27
           url="https://repo.maven.apache.org/maven2/org/apache/tomcat/tomcat/$version/tomcat-$version.zip"
@@ -53,12 +56,14 @@ jobs:
           export CATALINA_HOME="$RUNNER_TEMP/tomcat/apache-tomcat-$version"
           cp target/enjoytrip.war "$CATALINA_HOME/webapps/"
           chmod +x "$CATALINA_HOME"/bin/*.sh
+          python3 scripts/fixture_api.py > "$RUNNER_TEMP/fixture-api.log" 2>&1 &
           bash "$CATALINA_HOME/bin/startup.sh"
           for attempt in $(seq 1 45); do
             if curl -fsS http://localhost:8080/enjoytrip/health; then break; fi
             sleep 2
           done
           python3 scripts/smoke_test.py http://localhost:8080/enjoytrip
+          python3 scripts/travel_smoke_test.py http://localhost:8080/enjoytrip --fixtures
       - name: 실패 시 서버 로그
         if: failure()
         run: cat "$RUNNER_TEMP"/tomcat/apache-tomcat-*/logs/catalina.out 2>/dev/null || true

@@ -81,6 +81,10 @@ public final class ChargerClient {
           && longitude <= 132;
     }
 
+    public boolean hasCoordinates() {
+      return getHasCoordinates();
+    }
+
     public String getStatus() {
       return status;
     }
