@@ -54,7 +54,7 @@ enjoytrip/
 1. 저장소를 복제합니다.
 
    ```bash
-   git clone https://github.com/js05157/enjoytrip.git
+   git clone https://github.com/enjoytrip-duo/enjoytrip.git
    cd enjoytrip
    ```
 
@@ -91,6 +91,9 @@ enjoytrip/
 
 ## 협업 규칙
 
+- Organization: [`enjoytrip-duo`](https://github.com/enjoytrip-duo)
+- 개발팀: `developers` — 이 저장소의 쓰기(Write) 권한으로 함께 개발합니다.
+- 팀원은 조직 초대를 수락한 뒤 저장소를 복제합니다.
 - `main`: 함께 사용할 기준 코드
 - `feature/관광지조회`, `feature/회원관리`처럼 기능별 브랜치에서 작업합니다.
 - PR로 변경 내용을 공유하고, 서로 확인한 뒤 병합합니다.
