@@ -5,6 +5,7 @@ import jakarta.servlet.annotation.WebListener;
 public class App implements ServletContextListener {
     public Config config;
     public Database db;
+    public com.enjoytrip.cache.RedisCache cache;
     public com.enjoytrip.member.ResetService resets;
     public com.enjoytrip.member.MemberService members;
     public com.enjoytrip.attraction.AttractionService attractions;
@@ -13,9 +14,10 @@ public class App implements ServletContextListener {
         config = new Config(); db = new Database(config);
         resets = new com.enjoytrip.member.ResetService(db,config);
         members = new com.enjoytrip.member.MemberService(new com.enjoytrip.member.MemberDao(db));
-        attractions = new com.enjoytrip.attraction.AttractionService(new com.enjoytrip.attraction.TourClient(config));
+        cache = new com.enjoytrip.cache.RedisCache(config);
+        attractions = new com.enjoytrip.cache.CachedAttractionService(new com.enjoytrip.attraction.TourClient(config),cache,config.number("redis.ttl-seconds"),config.demo()?"demo":"live");
         event.getServletContext().setAttribute("app", this);
         event.getServletContext().setAttribute("demo", config.demo());
     }
-    @Override public void contextDestroyed(ServletContextEvent event) { if (db != null) db.close(); }
+    @Override public void contextDestroyed(ServletContextEvent event) { if (cache != null) cache.close(); if (db != null) db.close(); }
 }
