@@ -12,7 +12,8 @@ public class AttractionServlet extends HttpServlet {
     @Override protected void doGet(HttpServletRequest req,HttpServletResponse res) throws IOException,ServletException {
         String path=req.getPathInfo();
         if("/areas".equals(path)) { res.setContentType("application/json;charset=UTF-8");new ObjectMapper().writeValue(res.getWriter(),service.districts(Web.text(req,"area",2)));return; }
-        if("/detail".equals(path)) { Attraction item=service.detail(Web.text(req,"id",12));if(item==null){res.sendError(404);return;}req.setAttribute("item",item);Web.view(req,res,"attractions/detail");return; }
+        if("/detail".equals(path)) { Attraction item=service.detail(Web.text(req,"id",12));if(item==null){res.sendError(404);return;}req.setAttribute("item",item);
+            com.enjoytrip.member.Member member=com.enjoytrip.member.Auth.current(req);if(member!=null)req.setAttribute("plans",new com.enjoytrip.plan.PlanDao(App.of(getServletContext()).db).list(member.id()));Web.view(req,res,"attractions/detail");return; }
         if(path!=null&&!path.equals("/")){res.sendError(404);return;}
         AttractionQuery query=AttractionQuery.of(req);
         req.setAttribute("query",query);req.setAttribute("result",service.search(query));req.setAttribute("regions",TourClient.REGIONS);req.setAttribute("types",TourClient.TYPES);req.setAttribute("districts",service.districts(query.area()));
