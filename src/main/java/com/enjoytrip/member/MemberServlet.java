@@ -14,7 +14,7 @@ public class MemberServlet extends HttpServlet {
   Member current=Auth.require(req,res);if(current==null)return;MemberService service=App.of(getServletContext()).members;
   try{
    if("/update".equals(req.getPathInfo())){Member next=service.update(current,Web.text(req,"email",254),Web.text(req,"name",40),req.getParameter("password"),req.getParameter("newPassword"));Auth.login(req,next);Web.flash(req,"회원 정보를 수정했어요.");Web.redirect(req,res,"/members/me");}
-   else if("/delete".equals(req.getPathInfo())){service.delete(current,req.getParameter("password"));req.getSession().invalidate();Web.flash(req,"회원 탈퇴가 완료됐어요.");Web.redirect(req,res,"/");}
+   else if("/delete".equals(req.getPathInfo())){var images=new com.enjoytrip.place.HotplaceDao(App.of(getServletContext()).db).images(current.id());service.delete(current,req.getParameter("password"));var store=new com.enjoytrip.place.ImageStore();images.forEach(store::delete);req.getSession().invalidate();Web.flash(req,"회원 탈퇴가 완료됐어요.");Web.redirect(req,res,"/");}
    else res.sendError(404);
   }catch(IllegalArgumentException e){res.setStatus(400);req.setAttribute("error",e.getMessage());Web.view(req,res,"members/me");}
  }
