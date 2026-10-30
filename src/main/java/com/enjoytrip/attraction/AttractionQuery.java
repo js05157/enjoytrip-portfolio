@@ -14,4 +14,6 @@ public record AttractionQuery(String area, String district, String type, String 
     public String link(int target) { return "?area="+area+"&district="+district+"&type="+type+"&keyword="+Web.encode(keyword)+"&sort="+sort+"&page="+target; }
     public String getPrevious() { return link(Math.max(1,page-1)); }
     public String getNext() { return link(page+1); }
+    public String previous() { return getPrevious(); }
+    public String next() { return getNext(); }
 }

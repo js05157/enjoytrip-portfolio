@@ -1,5 +1,8 @@
 package com.enjoytrip.attraction;
 public record Attraction(String contentId, String title, String address, String areaCode, String contentTypeId, String image, double latitude, double longitude, String overview) {
+    public String typeName() { return getTypeName(); }
+    public boolean hasCoordinates() { return getHasCoordinates(); }
+    public String mapUrl() { return getMapUrl(); }
     public String getContentId() { return contentId; }
     public String getTitle() { return title; }
     public String getAddress() { return address; }
