@@ -8,6 +8,9 @@ app.base-url=http://localhost:8080/enjoytrip
 # db.user=enjoytrip
 # db.password=개인_비밀번호
 # tour.service-key=공공데이터포털_Decoding_인증키
+weather.base-url=https://api.open-meteo.com/v1/forecast
+# 한국환경공단 전기자동차 충전소 정보 활용 신청 후 발급한 Decoding 키
+ev.service-key=
 redis.enabled=true
 redis.uri=redis://localhost:16379/0
 redis.ttl-seconds=600

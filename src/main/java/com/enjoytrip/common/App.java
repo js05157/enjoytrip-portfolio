@@ -11,6 +11,8 @@ public class App implements ServletContextListener {
   public com.enjoytrip.member.ResetService resets;
   public com.enjoytrip.member.MemberService members;
   public com.enjoytrip.attraction.AttractionService attractions;
+  public JsonApi external;
+  public com.enjoytrip.travel.WeatherClient weather;
 
   public static App of(ServletContext context) {
     return (App) context.getAttribute("app");
@@ -28,6 +30,8 @@ public class App implements ServletContextListener {
     resets = new com.enjoytrip.member.ResetService(db, config);
     members = new com.enjoytrip.member.MemberService(new com.enjoytrip.member.MemberDao(db));
     cache = new com.enjoytrip.cache.RedisCache(config);
+    external = new JsonApi(cache);
+    weather = new com.enjoytrip.travel.WeatherClient(config, external);
     attractions =
         new com.enjoytrip.cache.CachedAttractionService(
             new com.enjoytrip.attraction.TourClient(config),
