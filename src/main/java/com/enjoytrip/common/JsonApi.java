@@ -43,12 +43,25 @@ public final class JsonApi {
           http.send(
               HttpRequest.newBuilder(uri).timeout(Duration.ofSeconds(12)).GET().build(),
               HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+      JsonNode value = null;
+      try {
+        value = json.readTree(response.body());
+      } catch (com.fasterxml.jackson.core.JsonProcessingException ignored) {
+      }
+      String code = errorCode(value);
       if (response.statusCode() != 200)
         throw new Failure(
-            name + " 제공 서버가 응답하지 않습니다 (HTTP " + response.statusCode() + "). 잠시 후 다시 조회해 주세요.");
-      JsonNode value = json.readTree(response.body());
+            name
+                + " 요청 실패 (HTTP "
+                + response.statusCode()
+                + code
+                + "). 서비스 활용 등록과 제공 상태를 확인해 주세요.");
       if (value == null || !valid.test(value))
-        throw new Failure(name + " 응답을 확인할 수 없습니다. 서비스 활용 등록과 제공 상태를 확인해 주세요.");
+        throw new Failure(
+            name
+                + " 응답을 확인할 수 없습니다"
+                + (code.isEmpty() ? "" : " (" + code.substring(2) + ")")
+                + ". 서비스 활용 등록과 제공 상태를 확인해 주세요.");
       cache.put(key, response.body(), ttl);
       return value;
     } catch (Failure e) {
@@ -59,6 +72,19 @@ public final class JsonApi {
     } catch (Exception e) {
       throw new Failure(name + " 정보를 불러오지 못했습니다. 잠시 후 다시 조회해 주세요.");
     }
+  }
+
+  private static String errorCode(JsonNode value) {
+    if (value == null) return "";
+    String code =
+        value
+            .path("OpenAPI_ServiceResponse")
+            .path("cmmMsgHeader")
+            .path("returnReasonCode")
+            .asText();
+    if (code.isEmpty()) code = value.path("response").path("header").path("resultCode").asText();
+    if (code.isEmpty()) code = value.path("resultCode").asText();
+    return code.matches("[0-9]{1,6}") ? ", 오류코드 " + code : "";
   }
 
   public static final class Failure extends IllegalStateException {

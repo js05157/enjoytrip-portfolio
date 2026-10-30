@@ -145,6 +145,7 @@ public class ResetService {
     props.setProperty("mail.smtp.writetimeout", "5000");
     props.setProperty("mail.smtp.starttls.enable", config.get("smtp.starttls"));
     props.setProperty("mail.smtp.starttls.required", config.get("smtp.starttls"));
+    props.setProperty("mail.smtp.ssl.checkserveridentity", "true");
     boolean auth = !config.get("smtp.user").isBlank();
     props.setProperty("mail.smtp.auth", "" + auth);
     Session session =
